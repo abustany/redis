@@ -214,7 +214,12 @@ func (c *ClusterClient) setSlots(slots []ClusterSlotInfo) {
 }
 
 func (c *ClusterClient) reloadSlots() {
-	defer atomic.StoreUint32(&c.reloading, 0)
+	defer func() {
+		// Release lock with delay so pending commands don't trigger
+		// reload immediately.
+		time.Sleep(time.Second)
+		atomic.StoreUint32(&c.reloading, 0)
+	}()
 
 	client, err := c.randomClient()
 	if err != nil {
